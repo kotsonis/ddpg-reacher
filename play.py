@@ -53,7 +53,7 @@ def main():
             if np.any(dones):                                 # exit loop if episode finished
                 break
         scores.append(np.mean(agent_scores))              # store episodes mean reward over agents
-        print('\rEpisodes: {}\tAverage Score: {:.2f}\t\t'.format(i_episode, np.mean(scores)))
+        print('\rEpisodes: {}\tLast score: {:.2f}\tAverage Score: {:.2f}\t\t'.format(i_episode, scores[-1], np.mean(scores)))
         
 
     env.close()
