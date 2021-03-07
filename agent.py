@@ -110,10 +110,10 @@ class DPG():
             action = self.actor_target(state).cpu().data.numpy()
             # if we are being stochastic, add noise weighted by exploration
             if add_noise:
-                action += self.eps*self.noise.noise()
+                action = (1-self.eps)*action + self.eps*self.noise.noise()
         self.actor_target.train()
 
-        return np.clip(action, -1, 1)  # TODO: clip according to Unity environment feedback
+        return np.clip(action, -1, 1)
 
     def learn(self):
         """ samples a batch of experiences to perform one step of learning Actor/Critic """
