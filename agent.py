@@ -110,7 +110,7 @@ class DPG():
             action = self.actor_target(state).cpu().data.numpy()
             # if we are being stochastic, add noise weighted by exploration
             if add_noise:
-                action += self.eps*self.noise.sample()
+                action += self.eps*self.noise.noise()
         self.actor_target.train()
 
         return np.clip(action, -1, 1)  # TODO: clip according to Unity environment feedback
