@@ -21,11 +21,12 @@ class Configuration():
         self.critic_action_layers = 3
         self.critic_hidden_units = 256
         self.PER_eps = 1e-05
-        self.reacher_location = './Reacher_Windows_x86_64/Reacher.exe'
+        self.reacher_location = '../../deep-reinforcement-learning/p2_continuous-control/Reacher_Windows_x86_64/Reacher.exe'   #./Reacher_Windows_x86_64/Reacher.exe'
         self.PER_beta_start = 0.4
         self.PER_beta_decay = 0.00025/4.0
         self.PER_beta_max = 1.0
         self.update_every = 4
+        self.n_episodes = 5
 
         self.log_dir = '.'
         self.model_dir = False
@@ -69,7 +70,7 @@ class Configuration():
             print(err)  # will print something like "option -a not recognized"
             usage()
             sys.exit(2)
-        hyperparams = std_learn_params
+        
 
         for o, a in opts:
             if o == "--eps-start":
@@ -103,8 +104,8 @@ class Configuration():
                 sys.exit(2)
             else:
                 assert False, "unhandled option"
-        # return the modified hyperparams
-        return hyperparams
+        
+        
 
 
 
