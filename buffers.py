@@ -167,8 +167,8 @@ class nStepPER(PrioritizedReplayBuffer):
                 next_rewards = np.array(data[2])
                 reward_t = reward_t+ gamma*next_rewards
                 gamma = gamma*gamma
-            gammas = np.ones(reward.shape)*gamma
-            super().add(state_t,action,reward_t,next_state_N,done_N)
+            gammas = np.ones_like(reward_N)*gamma
+            super().add(state_t,action_t,reward_t,next_state_N,done_N)
         return
 
 
