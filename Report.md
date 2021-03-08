@@ -1,139 +1,178 @@
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.5.1/katex.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/github-markdown-css/2.2.1/github-markdown.css"/>
-
-[//]: # (Image References)
-
-[image1]:  (./images/agent_environment.png) "Agent Environment"
-[image2]:  (./images/dueling_q_NN.png) "dueling Q Network"
 # Reacher Unity environment solution Report
+# Udacity Reinforcement Learning Nanodegree Project 2: Continuous Control
 
-This project implements a Dueling Double Deep Q Network to learn how to navigate within the environment and collect rewards.
-## Learning Algorithm
-In reinforcement learning, an agent interacts with an environment in order to learn an optimal policy. As shown in below diagram, the agent observes the state from the environment, and based on a value_action DNN function approximator (Q Function), takes an action that is sent to the environment. The environment will respond with a new state, as well as a reward(if any). The agent will use this information (state, performed action, next state, reward) to improve it's Q Function and continue the loop.
+This project implements a DDPG agent to learn two agents how to collaborate and play Tennis.
 
-![Agent Environment](./images/agent_environment.png)
+## Environment particularities
+<p align="center">
+  <img  src="./images/trained_reacher_agent.gif">
+</p>
+Reacher is an environment in which 20 agents control a double-jointed arm each, allowing the agent to move the tip of the arm in all 3 axis. The target (goal location) is moving and each agent receives a reward of +0.1 for each step that the agent's hand is in the goal location. Thus, the goal of each agent is to maintain it's position at the target location for as many time steps as possible.
 
-By learning the value-action pair (Q), our agent can learn the optimal policy which will allow it to select the best next action in a state, based on the value each action would bring. Under the Bellman equation, the action value pair (s,a) under our policy is the expected value given the reward we got for taking action a, plus the discounted value that the best action would give us in the next state. This is formulated as follows:
+The environment state is represented by 33 variables corresponding to position, rotation, velocity, and angular velocities of the two arm rigid bodies. The actions are 4 variables that are continuous and not discrete, corresponding to the torque to be applied to the two joints. As the actions are continuous (-1.0, 1.0), this problem is a continuous control problem, and we have solved it with a deep deterministic policy gradient (DDPG) algorithm.
 
-<a href="https://www.codecogs.com/eqnedit.php?latex=\begin{align*}&space;Q_\pi(s,a)=\mathbb{E}_{\pi}\left[r_{t&plus;1}&space;&plus;\gamma&space;Q_\pi(s_{t&plus;1},a_{t&plus;1})&space;\right&space;]&space;\\&space;\end{}" target="_blank"><img src="https://latex.codecogs.com/png.latex?\begin{align*}&space;Q_\pi(s,a)=\mathbb{E}_{\pi}\left[r_{t&plus;1}&space;&plus;\gamma&space;Q_\pi(s_{t&plus;1},a_{t&plus;1})&space;\right&space;]&space;\\&space;\end{}" title="\begin{align*} Q_\pi(s,a)=\mathbb{E}_{\pi}\left[r_{t+1} +\gamma Q_\pi(s_{t+1},a_{t+1}) \right ] \\ \end{}" /></a>
+## Reinforcement Learning and Policy Gradient methods background
 
-
-Since we use a replay buffer, we use an offline method for learning Q in steps with a step size alpha, specifically the Q-learning:
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=\begin{align*}&space;&{Q(s_t,a_t)&space;=&space;Q(s_t,a_t)&space;&plus;&space;\alpha(r_{t&plus;1}&plus;\gamma\max_aQ(s_{t&plus;1},a)-Q(s_t,a_t))}&space;\end{}" target="_blank"><img src="https://latex.codecogs.com/png.latex?\begin{align*}&space;&{Q(s_t,a_t)&space;=&space;Q(s_t,a_t)&space;&plus;&space;\alpha(r_{t&plus;1}&plus;\gamma\max_aQ(s_{t&plus;1},a)-Q(s_t,a_t))}&space;\end{}" title="\begin{align*} &{Q(s_t,a_t) = Q(s_t,a_t) + \alpha(r_{t+1}+\gamma\max_aQ(s_{t+1},a)-Q(s_t,a_t))} \end{}" /></a>
-
-
-### dueling Q function approximator
-This project implements a dueling Q network for the Q function approximator, as detailed in  [Dueling Network Architectures for Deep Reinforcement Learning, 2015, Wang et al.](https://arxiv.org/abs/1511.06581)
-
-
-This paper proposes, given a state, to create two neural network branches that will be learning the state's mean value and each action's advantage respectively. The states value is a scalar, while the advantage is a vector of size action_space. The mean state value is added to the advantage vector(with it's best action value however negated). Since the maximum advantage action is actually  This technique forces the Q function approximator to separate the mean state value from each action. 
-
-The DNN layout is presented below:
-
-![dueling Q Network](./images/dueling_q_NN.png)
-
-Implementation of this DNN is through class `dueling_QNetwork` and can be found in [model.py](./models/model.py).
-
-The parameters of this NN are part of the Q function, thus our Q-Learning becomes:
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=\begin{align*}&space;&{\text{TD-error}&space;=&space;(r_{t&plus;1}&plus;\gamma\max_aQ(s_{t&plus;1},a,\theta)-Q(s_t,a_t,\theta))}\\&space;&{\text{and&space;the&space;change&space;in&space;weights&space;becomes:}}\\&space;&{\Delta&space;\theta=\alpha\left[TD-error&space;\right&space;]\nabla_\theta&space;Q(s,a,\theta)}&space;\end{}" target="_blank"><img src="https://latex.codecogs.com/png.latex?\begin{align*}&space;&{\text{TD-error}&space;=&space;(r_{t&plus;1}&plus;\gamma\max_aQ(s_{t&plus;1},a,\theta)-Q(s_t,a_t,\theta))}\\&space;&{\text{and&space;the&space;change&space;in&space;weights&space;becomes:}}\\&space;&{\Delta&space;\theta=\alpha\left[TD-error&space;\right&space;]\nabla_\theta&space;Q(s,a,\theta)}&space;\end{}" title="\begin{align*} &{\text{TD-error} = (r_{t+1}+\gamma\max_aQ(s_{t+1},a,\theta)-Q(s_t,a_t,\theta))}\\ &{\text{and the change in weights becomes:}}\\ &{\Delta \theta=\alpha\left[TD-error \right ]\nabla_\theta Q(s,a,\theta)} \end{}" /></a>
-
-Both the discount <a href="https://www.codecogs.com/eqnedit.php?latex=\inline&space;\gamma" target="_blank"><img src="https://latex.codecogs.com/png.latex?\inline&space;\gamma" title="\gamma" /></a> as well as the learning rate <a href="https://www.codecogs.com/eqnedit.php?latex=\inline&space;\alpha" target="_blank"><img src="https://latex.codecogs.com/png.latex?\inline&space;\alpha" title="\alpha" /></a> are available as hyper parameters `gamma` and `lr` respectively.
-
-### Double Q Learning
-This project implements a double Q learning solution as detailed in [Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461) by Van Hasselt to solve the problem that is due to using the same samples both to determine the maximizing action and to estimate its value.
-
-Basically, we have two Q functions, that have the same network, but with a different set of weights. One is used to determine the greedy policy and the other to determine its value. Our TD-error function, thus becomes:
-
-<a href="https://www.codecogs.com/eqnedit.php?latex=\begin{align*}&space;&{\text{TD-error}&space;=&space;\left[r_{t&plus;1}&plus;&space;\gamma&space;Q(s_{t&plus;1},\arg&space;\max_a&space;Q(s_{t&plus;1},a;\theta)&space;;\theta&space;')&space;\right&space;]-Q(s_t,a_t;\theta))}&space;\end{}" target="_blank"><img src="https://latex.codecogs.com/png.latex?\begin{align*}&space;&{\text{TD-error}&space;=&space;\left[r_{t&plus;1}&plus;&space;\gamma&space;Q(s_{t&plus;1},\arg&space;\max_a&space;Q(s_{t&plus;1},a;\theta)&space;;\theta&space;')&space;\right&space;]-Q(s_t,a_t;\theta))}&space;\end{}" title="\begin{align*} &{\text{TD-error} = \left[r_{t+1}+ \gamma Q(s_{t+1},\arg \max_a Q(s_{t+1},a;\theta) ;\theta ') \right ]-Q(s_t,a_t;\theta))} \end{}" /></a>
+Reinforcement learning (RL) is one of the three basic machine learning paradigms, together with supervised learning and unsupervised learning. Whereas both supervised and unsupervised learning are concerned with finding an accurate system to predict an output given inputs, RL focuses on Markov Decision Processes (MDPs) and is concerned with the transition from states to states and the reward/cost associated with these transitions.  
+This environment/agent interaction is depicted in below figure:
+<p align="center">
+  <img  src="images/agent_environment.png">
+</p>
 
 
+Basically, the agent and environment interact in a sequence of discrete time steps t. At each time step t, the agent receives some representation of the environment's state, S<sub>t</sub>&#8712;S, and on that basis selects an action, A<sub>t</sub>&#8712;A(S). At the next timestep t+1, in part as a consequence of its action, the agent receives a scalar reward, R<sub>t+1</sub>&#8712;&#8477;, as well as an new state S<sub>t+1</sub>. The MDP and agent together create a trajectory from an initial time step t over n transitions of states,actions,rewards, and next states as follows:
 
-In order to make sure both networks gain value, we gradually transfer the weights of one network to the other at the end of each learning cycle. The rate of transfer is controlled via hyperparameter `tau` as follows:
+<img alt="formula" src="https://render.githubusercontent.com/render/math?math=\displaystyle S_t,A_t,R_t,S_{t%2b 1},A_{t%2b1},\cdots,S_{t%2bn},A_{t%2bn},R_{t%2bn}"/>
 
-<a href="https://www.codecogs.com/eqnedit.php?latex=\theta&space;\leftarrow&space;\tau\theta&space;&plus;&space;(1-\tau)\theta'" target="_blank"><img src="https://latex.codecogs.com/png.latex?\theta&space;\leftarrow&space;\tau\theta&space;&plus;&space;(1-\tau)\theta'" title="\theta \leftarrow \tau\theta + (1-\tau)\theta'" /></a>
 
-The implementation of the double Q learning can be found in class `DDQNPrioritizedAgent` in [DDQN.py](./agent/DDQN.py).
+We represent the sum of rewards accumulated over a trajectory as <img alt="formula" src="https://render.githubusercontent.com/render/math?math=\displaystyle G_t = R_t %2b R_{t%2b1} %2b \cdots %2b R_{t%2bn}"/>. Clearly the limit of G<sub>t</sub> as the trajectory steps n increase is unbounded, so to make sure that we can have a bounded maximum total reward, we discount the rewards from the next transaction by a factor &gamma;&#8712;(0,1] with the case of γ=1 being useful only when a task is episodic, ie with a fixed number of transitions.
+In the case that the sets S,R,and A are finite, then the MDP is finite and the following hold:
+* Random variables <img alt="formula" src="https://render.githubusercontent.com/render/math?math=\displaystyle R_{t%2B1},S_{t%2b1}"/> have well defined discrete probability distributions **depending only on the preceding state <img alt="formula" src="https://render.githubusercontent.com/render/math?math=\displaystyle S_t"/> & action <img alt="formula" src="https://render.githubusercontent.com/render/math?math=\displaystyle A_t"/>**
+* Given a random state s' ∈ S and reward r ∈ R the probability of s' and r occuring at time t given a preceding state s and action a is given by the four argument MDP <strong>dynamics function</strong> <img alt="formula" src="https://render.githubusercontent.com/render/math?math=\displaystyle p:S \times R \times S \times A \to [0,1]"/>
+  <img alt="formula" src="https://render.githubusercontent.com/render/math?math=p(s',r|s,a) \doteq \Pr \{ {S_t} = {s'},{R_t} = {r'}|{S_{t - 1}} = s,{A_{t - 1}} = a\} \quad \forall (s',s) \in S,r \in R,a \in A(s)%0A"/>
+* Namely, given a state s and an action a, a probability can be assigned to reaching a state s' and receiving reward r, however the sum of these probabilities over all the possible next states and rewards is 1. That is:
+  * <img alt="formula" src="https://render.githubusercontent.com/render/math?math=\displaystyle\sum_{s'\in S} {\sum_{r \in R} {p(s',r\space| s,a)}} = 1 \quad \forall s\in S,a \in A(s)%0A"/>
 
-### Prioritized Replay Buffer
-This project is an implementation of the [Prioritized Experience Replay,Google DeepMind](https://arxiv.org/pdf/1511.05952.pdf) paper, modified to implement also n-step returns.
+From the <em>dynamics</em> function <em>**p**</em> we can derive other useful functions:
+* <em>state transition probabilities</em> : <img alt="formula" src="https://render.githubusercontent.com/render/math?math=\begin{align}%0a\displaystyle p(s'|s,a) = \sum_{r \in R} {p(s',r|s,a)} \quad \quad p:S\times S\times A \to [0,1]\end{align}%0A"/>
+* <em>expected rewards</em>: <img alt="formula" src="https://render.githubusercontent.com/render/math?math=\begin{align}%0a\displaystyle r(s,a) = \mathbb{E}[R_t|S_{t-1}=s,A_{t-1}=a] = \sum_{r \in R}\sum_{s'\in S} {p(s',r|s,a)} \quad \quad r:S\times A \to \mathbb{R}\end{align}%0A"/>
 
-The concept of a replay buffer is to store every agent-environment interaction (state,action,next-state,reward) into a buffer and then sample randomly from this buffer a batch of experiences in order to execute a learning step. Sampling from a replay buffer randomly allows to decorrelate the samples, since they will no longer be coming from a specific set of sequences. In this implementation, the buffer size and batch size are available as hyper parameters `buffer_size` and `batch_size` respectively.
+We define a policy, ![formula](https://render.githubusercontent.com/render/math?math=\pi(s)), as a function ![formula](https://render.githubusercontent.com/render/math?math=\pi:S\to%20A) that produces an action a given a state s. Thus the expected rewards at a state s can be expressed as ![formula](https://render.githubusercontent.com/render/math?math=r(s,a)=r(s,\pi(s))=\mathbb{E}[R_t|S_{t-1}=s,A_{t-1}=\pi(s)]). This allows us to define the action-value function ![formula](https://render.githubusercontent.com/render/math?math=q_\pi(s,a)), which defines the value of taking action a in state s under the policy π, and continuing the trajectory by taking following the policy π as follows:
 
-The prioritized replay buffer (PRE) introduces the idea of sampling these experiences for learning not completely randomly, but with extra probability to be sampled given to the experiences that can contribute most to learning. These would be the experiences that have the largest absoluted TD-error.
+[comment]: <> (%2B is plus sign)
+[comment]: <> (%0A is line feed, %26 is &)
 
-In order to do this, when sampling, the PRE splits the buffer into bins and then samples randomly from these bins. The number of bins is the batch size. The novelty is that the bins are not composed of equal number of experiences, but of experiences that have an equal cumulative sum. Thus, a bin that would have experiences with a small TD-error would have many experiences in it from which to randomly sample, while a bin containing a high TD-error experience would have few experiences, increasing the probability that the high TD-error will be selected for learning.
+<img src="https://render.githubusercontent.com/render/math?math=\begin{align*}%0a\displaystyle q_\pi(s,a) %26= \mathbb{E}[G_t | S_t = s, A_t = a] \\%0A%26= \mathbb{E}_\pi\left[\displaystyle\sum_{k=0}^{\infty}{\gamma^kR_{t%2bk%2b1}|S_t=s,A_t=a }\right] \\%0A\end{align*}%0A">
 
-PRE defines the priority of an experience i in relation to the absolute value of the TD-error plus a minimum priority to ensure all cases get sampled as follows:
 
-<a href="https://www.codecogs.com/eqnedit.php?latex=\inline&space;p(i)&space;=&space;\left|\delta_i&space;\right|&plus;\epsilon" target="_blank"><img src="https://latex.codecogs.com/png.latex?\inline&space;p(i)&space;=&space;\left|\delta_i&space;\right|&plus;\epsilon" title="p(i) = \left|\delta_i \right|+\epsilon" /></a>
+A fundamental property of the action value function is that it satisfies recursive relationships. That is, for any policy ![formula](https://render.githubusercontent.com/render/math?math=\pi) and any state ![formula](https://render.githubusercontent.com/render/math?math=s), the following consistency holds between the action value of ![formula](https://render.githubusercontent.com/render/math?math=(s,a)) and the action value of (![formula](https://render.githubusercontent.com/render/math?math=s_{%2b1},a_{%2b1})):
 
-The probability to be sampled is defined in relation to a prioritization factor alpha and the sum of all priorities in the buffer. Factor alpha controls the amount of prioritization, with 0 corresponding to uniform. Probability is thus defined as follows:
+<img src="https://render.githubusercontent.com/render/math?math=\begin{align*}%0a\displaystyle q_\pi(s,a) %26= \mathbb{E}[R_{t%2b 1} %2b \gamma G_{t%2b 1}|S_t=s,A_t=a] \\%0A%26= \displaystyle\sum_{s'}\sum_rp(s',r|s,a)r%2b \sum_{s'}\sum_rp(s',r|s,a)\gamma(\mathbb{E}[G_{t%2b 1}|S_{t%2b1}=s',A_{t%2b1}=a=\pi(s)]) \\%0A%26=\displaystyle\sum_{s'}\sum_rp(s',r|s,a)[r%2bq_\pi(s',a')]\end{align*}%0A">
 
-<a href="https://www.codecogs.com/eqnedit.php?latex=P(i)=\frac{{p_i}^\alpha}{\sum_k{{p_k}^\alpha}}" target="_blank"><img src="https://latex.codecogs.com/png.latex?P(i)=\frac{{p_i}^\alpha}{\sum_k{{p_k}^\alpha}}" title="P(i)=\frac{{p_i}^\alpha}{\sum_k{{p_k}^\alpha}}" /></a>
+The sum of probabilities over all possible next states s' and rewards r reflects the stochastisticy of the system. If we focus on a specific time-step t, then we can reformulate this with bootstrapping as follows:
 
-Note that factor alpha is available as hyper parameter `alpha`.
+![Image](https://latex.codecogs.com/png.latex?%5Cbegin%7Baligned%7D%20q_%5Cpi%28s%2Ca%29%20%26%3D%20r_t&plus;%5Cgamma%20q_%5Cpi%28s%27%2Ca%27%7Ca%27%3D%5Cpi%28s%29%29%5Cimplies%5C%5C%20%5Cdelta_t%20%26%3D%20%5Cdisplaystyle%20%5Cunderbrace%7B%5Coverbrace%7Br_t&plus;%5Cgamma%20q_%5Cpi%28s%27%2Ca%27%29%7D%5E%5Ctext%7Bestimated%20q%7D-q_%5Cpi%28s%2Ca%29%7D_%7B%5Ctext%7BTD%20Error%7D%7D%20%5Cend%7Baligned%7D)
 
-This sampling allows for quicker learning, however the distribution of experiences in relation to what the agent will encounter in the environment is now biased. To counter this, PRE introduces an importance sampling weight for each experience so that experiences with a higher priority will contribute less in the Q network learning gradient descent. Basically, we are trying to sample experiences with a large temporal difference error (since they will help us learn faster), but are making sure that their contribution to the gradient is reduced in importance, so that we are also learning in a stable manner. The non-normalized importance sampling weight is controlled by the parameter beta and is defined as follows:
-<a href="https://www.codecogs.com/eqnedit.php?latex=w(i)=\left&space;({\frac&space;{1}{N*P(i)}}&space;\right&space;)^\beta" target="_blank"><img src="https://latex.codecogs.com/png.latex?w(i)=\left&space;({\frac&space;{1}{N*P(i)}}&space;\right&space;)^\beta" title="w(i)=\left ({\frac {1}{N*P(i)}} \right )^\beta" /></a>
+When ![formula](https://render.githubusercontent.com/render/math?math=q_\pi) is approximated as a non-linear function with a neural network with parameters θ, then we denote the action-value function as ![formula](https://render.githubusercontent.com/render/math?math=Q^\pi%28%20s,a|\theta%20%29).
+### Q - learning
+In Q-learning, we consider that π is an optimal policy, that selects the next action based on the maximum q value of the future state. We learn the parameters of ![formula](https://render.githubusercontent.com/render/math?math=Q^\pi) through gradient descent, trying to fit the above function for a Bellmann error of 0. With a learning rate ![formula](https://render.githubusercontent.com/render/math?math=\alpha) the formula and gradient is thus:
+<img src="https://render.githubusercontent.com/render/math?math=\begin{align*}%0a\Delta q_t %26= \text{TD Error}= (r_t%2b\gamma \max_a Q(s_{t%2b1},a , \theta) - Q(s_t,a_t , \theta) q_\pi(s,a) \\%0A \Delta \theta %26= \alpha\Delta q_t \nabla_\theta Q(s,a,\theta) \end{align*}%0A">
 
-N being the buffer size. This is then normalized by the maximum weight in the buffer. It follows that the maximum weight will be from the experience that has the smallest probability P(i). The parameter beta is annealed to 1 during the learning experience. The starting beta, the linear decay rate, as well as the final beta value are available as hyper parameters `beta`, `beta_decay`, and `beta_end` respectively.
+### Deep Q Learning Networks
+Mnih et al., in their [DQN](https://web.stanford.edu/class/psych209/Readings/MnihEtAlHassibis15NatureControlDeepRL.pdf) paper, used deep neural networks as a function approximator for the above Q-Learning.
+Specifically, two Q-networks are trained by minimising a sequence of loss functions ![formula](https://render.githubusercontent.com/render/math?math=L_i(\theta_i)) that changes at each iteration i. One Q-network has parameters ![formula](https://render.githubusercontent.com/render/math?math=\theta) and is actively learning, while the second, target, Q-network has parameters ![formula](https://render.githubusercontent.com/render/math?math=\overline{\theta}) and it's parameters are gradually updated with the online's parameters. The loss function is thus:
 
-#### PRE performance implementation details
-As described above, prioritized replay buffer needs to compute a running sum for each experience, every time a sampling is requested in order to segment the experiences into bins. To avoid having to compute this every time, a segment tree with a sum operation has been used, and thus the cummulative sum is updated in O(nlogn) instead of O(n^2).
+<img alt="formula" src="https://render.githubusercontent.com/render/math?math=\begin{align*}%0a\displaystyle L_i(\theta_i)%26=\mathbb{E}_{s,a\sim \rho(\cdot)}[(y_i-Q(s,a|\theta_i))^2], \\%0Ay_i %26= \mathbb{E}_{s\prime\sim Env}[r%2b\gamma\displaystyle \max_{a\prime}Q(s',a'|\overline{\theta_i})|s,a]\quad =\text{estimated}\:q\:\text{at iteration}\:i,\\%0A\rho(a,s)%26=probability\: distribution\: over\: sequences\: s\: and\: actions\: a\end{align*}%0A">
 
-Furthermore, to compute the importance sampling weights, the minimum probability experience needs to be found in the whole buffer, every time a sampling is requested. Again, to avoid having to compute this with O(n^2) a segment tree with a min operation has been used, reducing the time complexity to O(nlogn).
+With the above refresher and definitions, we can move to the presentation of the algorithm implemented.
+### Deep Deterministic Policy Gradient
 
-The implementation of the prioritized replay buffer is through class `PrioritizedReplayBuffer` in [buffer.py](./buffer/ReplayBuffer.py).
+in the [DDPG](https://arxiv.org/abs/1509.02971) paper, Lillicrap et. al define an actor-critic method to train an agent on a continuous action space.
 
-### N-step returns
-We extend the DDPG algorithm to take into account 
-<a href="https://www.codecogs.com/eqnedit.php?latex=y_t&space;=&space;r(s_t,a_t)&space;&plus;&space;\overbrace{\sum_{n=1}^{N-1}{\gamma^n&space;r(s_n,a_n)}}^{\text{discounted&space;actual&space;rewards&space;of&space;next&space;N&space;steps}}&plus;\gamma^N&space;Q(s_{t&plus;N},\mu(s_{t&plus;N})|\theta^Q)" target="_blank"><img src="https://latex.codecogs.com/gif.latex?y_t&space;=&space;r(s_t,a_t)&space;&plus;&space;\overbrace{\sum_{n=1}^{N-1}{\gamma^n&space;r(s_n,a_n)}}^{\text{discounted&space;actual&space;rewards&space;of&space;next&space;N&space;steps}}&plus;\gamma^N&space;Q(s_{t&plus;N},\mu(s_{t&plus;N})|\theta^Q)" title="y_t = r(s_t,a_t) + \overbrace{\sum_{n=1}^{N-1}{\gamma^n r(s_n,a_n)}}^{\text{discounted actual rewards of next N steps}}+\gamma^N Q(s_{t+N},\mu(s_{t+N})|\theta^Q)" /></a>
+Finding the optimal policy with Q-learning is not trivial on continuous action spaces, since we would need to optimize the selected action at every timestep, requiring computation that will slow down our algorithm.
+Instead, in [policy gradient methods](http://proceedings.mlr.press/v32/silver14.pdf?CFID=6293331&CFTOKEN=eaaee2b6cc8c9889-7610350E-DCAB-7633-E69F572DC210F301), the actor uses a learned policy function approximator <img src="https://render.githubusercontent.com/render/math?math=\mu(s|\theta^\mu):S\gets A "> to select the best action. Learning what action is best given a state is done by maximizing the Q value for the state. Assuming we are sampling actions from a behavior <img src="https://render.githubusercontent.com/render/math?math=\beta=\pi(s,a)"> the objective of the actor becomes:
 
-# Complete Algorithm
+<img alt="formula" src="https://render.githubusercontent.com/render/math?math=\begin{align*}%0a\displaystyle J_\beta (\mu_\theta) %26= \int_S\rho^\beta (s)Q^\mu(s,\mu_\theta (s))ds \\%0A%26=\mathbb{E}_{s\sim \rho^\beta}[Q^\mu(s,\mu_\theta (s))]\\%0A Loss%26=-\mathbb{E}_{s\sim \rho^\beta}[Q^\mu(s,\mu_\theta (s))]\end{align*}%0A">
 
-Putting together all the aforementioned components:
-* Deep NN Dueling architecture for Q Function
-* Double Q Learning
-* Prioritized Replay Buffer
+And the gradient wrt θ becomes:
 
-are implemented with below algorithm:
+<img alt="formula" src="https://render.githubusercontent.com/render/math?math=\begin{align*}%0a\displaystyle \nabla_\theta J_\beta (\mu_\theta) %26\approx \int_S\rho^\beta (s)\nabla_\theta \mu_\theta(a|s)Q^\mu(s,a)ds \\%0A%26=\mathbb{E}_{s\sim \rho^\beta}[\nabla_\theta \mu_\theta (s) \nabla_aQ^\mu(s,a)|_{a=\mu_\theta(s)}]\\%0A\end{align*}%0A">
+
+In the actor-critic setting, critic learns the state value and the state action pair value. This is used to improve the actor (acting as a critic), as depicted in below figure:
+<p align="center">
+  <img  src="./images/actor_critic_methods.png">
+</p>
+
+
+Using a experience replay buffer and having two separate actor-critic networks (one being the target), the DDPG algorithm is as follows:
+![DDPG Algorithm](images/DDPG_algorithm.png)
 
 
 
-In order to experiment and learn, the agent chooses it's next action stochasticaly, and not just by selecting the next action based on highest expected reward. Specifically, the agent asigns a probability to be chosen to all other actions too so that it can explore alternative routes to reward. This functionality is implemented here through an epsilon-greedy algorithm, which initially explores alternatives at a high rate (hyper parameter `eps_start`) of 95% and linearly decays this to a minimum exploration of 5% (hyper parameter `eps_end`) with a rate of `eps_decay` per episode.
 
-## The training Environment
-The agent was trained with the following hyperparameters:
+### Implementation details
+In this project, we made the following modifications to the above algorithm:
+1. **Noise Process**: each agent has it's own Ornstein-Uhlenbeck noise generator, which is used for action exploration. The noise contribution to an action is calculated as follows (with the `eps` factor decaying during training):
+   ```python
+   if add_noise:
+        action = (1-self.eps)*action + self.eps*self.noise.noise()
+   ```
+2. **Replay buffer**: Instead of sampling stochastically from a replay buffer, we implemented a [Prioritized Experience Replay](https://arxiv.org/pdf/1511.05952.pdf) solution.
+3. **n step returns**: As the rewards to an agent are not immediate, to speed up training, an n-step return calculation was implemented.
 
-```python
-std_learn_params = {
-        # Unity Environment parameters
-        "banana_location": "./Banana_Windows_x86_64/Banana.exe",
-        # MDP learning parameters
-        "n_episodes": 2000, # maximum episodes to train on
-        "eps_start":0.975,  # starting exploration factor
-        "eps_end":0.05,     # ending exploration factor
-        "eps_decay":0.99,   # eps step decay
-        'early_stop': 13,   # early stop if average reward in 100 episode reaches this value
-        
-        # Q value learning parameters
-        "gamma": 1,         # discount factor
-        "tau": 1e-3,        # for soft update of target parameters
-        "lr": 5e-4,         # learning rate 
-        "update_every": 4,  # how often to update the network
-        
-        # Replay Buffer / Prioritized Replay Buffer parameters
-        "buffer_size": 1e5,         # replay buffer size
-        "batch_size": 32,           # minibatch size
-        "alpha": 0.8,               # prioritization factor 
-        "pr_eps": 1e-05,            # minimum prioritization
-        "beta":0.4,                 # Importance sampling beta factor start
-        "beta_step": 0.00025/4.0,   # beta decay factor
-        "beta_max": 1.0             # maximum beta
-    }
-```
+
+### Neural network architecture
+
+#### Actor Network
+The actor is a function approximator from the observation received by the agent (33 floating point values) to an action (4 floating point values).
+We use a deep neural net to approximate this, with the following characteristics:
+
+Below is the summary for the actor network. On the hidden layers we use the `leaky_relu` activation function. On the outputs we use `tanh` to produce actions that are in the desired range -1.0 to 1.0.
+
+| Layer | Type | Input | Output | Activation Fn | Parameters
+------------ | ------------- | ------------- | ------------- | ------------- | -------------
+layer_1 | Fully Connected | state (33x1) | 128 | None | 4352 (33x128 + 128 bias)
+bn1 | BatchNorm | 128 | 128 | `leaky_relu` | 512
+layer_2 | Fully Connected | 128 | 128 |`leaky_relu` | 16512 (128x128 + 128 bias)
+layer_3 | Fully Connected | 128 | 4 | `tanh` | 516 (128x4 + 4 bias)
+|||||| **21892 total**
+
+
+#### Critic network
+The actor is a function approximator from the current state of the game and agent actions to a state action value (1 floating point value).
+We use a deep neural net to approximate this, with the following characteristics:
+
+Since the observation size is 24 floating point values, the **state**=(obs size) * num_agents = 24*2 = **48**
+After running the **state** through a first layer of abstraction (`state_input_layer`), we concatenate all the agent **actions** to produce the input to our `input_layer`
+
+Below is the summary for the critic network. On the hidden layers we use the `leaky_relu` activation function. At the output layer we have no activation funtion.
+
+| Layer | Type | Input | Output | Activation Fn | Parameters
+------------ | ------------- | ------------- | ------------- | ------------- | -------------
+state_input_layer | Fully Connected | state (48) | 128 | `leaky_relu` | 6272 (48x128 + 128 bias)
+input_layer | Fully Connected | 128 + actions (4) | 128 | `leaky_relu` | 17024 (132x128 + 128 bias)
+hidden_layer[0] | Fully Connected | 128 | 64 | `leaky_relu` | 8256 (128x64 + 64 bias)
+hidden_layer[1] | Fully Connected | 64 | 64 | `leaky_relu` | 4160 (64x64 + 64 bias)
+output_layer | Fully Connected | 64 | 1 | **none** | 65 (64x1 + 1 bias)
+|||||| **29505 total**
+
+## Training parameters
+The following parameters were used for training:
+|Parameter | command line flag | Value
+|---------- | ----------------- | -----
+|**Training**
+|iterations |`--training_iterations`|8000
+|batch size | `--memory_batch_size`|512
+|Network update rate |`--tau`|0.05
+|**Noise**
+|Starting Noise factor | `--eps_start` |1.0
+|Minimum Noise factor | `--eps_minimum` |0.1
+|Noise factor decay rate |`--eps_decay` |0.999
+|**Prioritized Experience Replay**
+|buffer size ||1'000'000
+|n steps |`--n_steps`|15
+|reward discount rate |`--gamma`|0.995
+|α factor (prioritization) for Prioritized Replay Buffer|`--PER_alpha`|0.5
+|starting β factor (randomness) for Prioritized Replay Buffer|`--PER_beta_min`|0.5
+|ending β factor (randomness) for Prioritized Replay Buffer|`--PER_beta_max`|1.0
+|minimum priority to set when updating priorities|`--PER_minimum_priority`|1e-5
+|**Actor**
+|dimension of layers |`--actor_dnn_dims`|[128,64,64]
+|activation fn||`leaky_relu`
+|output activation fn||`tanh`
+|Optimizer||`Adam`
+|Learning rate|`--actor_lr`|0.0001
+|**Critic**
+|dimension of layers |`--actor_dnn_dims`|[128,64,64]
+|activation fn||`leaky_relu`
+|output activation fn||None
+|Optimizer||`Adam`
+|Learning rate|`--critic_lr`|0.0001
+
+## Results - Plot of scores
+With the above parameters, the agents were able to solve solve the game (average max score over 100 episodes > 0.5) in 2294 episodes (7781 iterations).
+
+
 ## Plot of Rewards
 With the above parameters, the agent was able to solve the game (average reward over 100 episodes >30) in 53 episodes.
 
@@ -143,9 +182,11 @@ Below is the reward per episode (mean reward across 20 agents).
 
 ![training_log](./images/Reacher_training_plot.png)
 
-## Ideas for future work
-This agent has been trained on a state space that consisted of a vector of 37 features.
-The improvement that could be done, is to actually process directly the pixels of what the agent is seeing first person, which would result in a state-space of 84x84 RGB image. ie a state space of 84x84x3
+## Future Work
+This agent was trained by trying to correctly forecast the future mean reward given a state and action. A very interesting development in reinforcement learning is the modification to distributional reinforcement learning, in which we learn the rewards distribution and not just the mean, allowing to capture more nuances of the system. 
+An improvement to be done is to implement a Sample-Based Distributional Policy Gradient [SDPG](https://arxiv.org/abs/2001.02652) (Sing et al, 2020) 
+
+
 
 
 
