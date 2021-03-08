@@ -1,8 +1,6 @@
 
 
-[//]: # (Image References)
 
-[image1]: https://user-images.githubusercontent.com/10624937/43851024-320ba930-9aff-11e8-8493-ee547c6af349.gif "Trained Agent"
 
 # ddpg-reacher
 A Deep Deterministic Policy Gradient Actor-Critic reinforcement learning solution to the Unity-ML(Udacity) [Reacher](https://github.com/Unity-Technologies/ml-agents/blob/master/docs/Learning-Environment-Examples.md#reacher) environment. 
@@ -11,7 +9,7 @@ A Deep Deterministic Policy Gradient Actor-Critic reinforcement learning solutio
 
 ## The Environment
 
-![Trained Agent][image1]
+![Trained Agent](./images/trained_reacher_agent.gif)
 
 Reacher is an environment in which 20 agents control a double-jointed arm each to move to a target location. The target (goal location) is moving and each agent receives a reward of +0.1 for each step that the agent's hand is in the goal location. Thus, the goal of each agent is to maintain its position at the target location for as many time steps as possible.
 
@@ -68,26 +66,30 @@ Create (and activate) a new environment with Python 3.6.
 
 2. Place the file in the `ddpg-reacher` folder, and unzip (or decompress) the file.
 
-3. edit [hyperparams.py](hyperparams.py) to and set the `banana_location` entry to point to the right location. Example :
+3. edit [config.py](config.py) to and set the `self.reacher_location` entry to point to the right location. Example :
 ```python 
-std_learn_params = {
-        # Unity Environment parameters
-        "banana_location": "./Banana_Windows_x86_64/Banana.exe",
+self.reacher_location = './Reacher_Windows_x86_64/Reacher.exe'
 ```
+**alternatively** you can pass the environment location to `train.py` with the `reacher_location=` argument
 ## Instructions
 ### Training
-To train an agent, [train.py](train.py) reads the hyperparameters from [hyperparams.py](hyperparams.py) and accepts command line options to modify parameters and/or set saving options.You can get the CLI options by running
+To train an agent, [train.py](train.py) reads the hyperparameters from [config.py](config.py) and accepts command line options to modify parameters and/or set saving options.You can get the CLI options by running
 ```bash
 python train.py -h
+```
+
+to run a training with the parameters that produced a solution, you can run:
+```bash
+python train.py --save-model_dir=model --output-image=reacher_v3.png --episodes=200 --batch-size=256 --eps-decay=0.99 --n_step=7
 ```
 ### Playing with a trained model
 you can see the agent playing with the trained model as follows:
 ```bash
 python play.py
 ```
-You can also specify the number of episodes you want the agent to play, as well as the non-default trained model as follows:
+You can also specify the number of episodes you want the agent to play, as well as the non-default trained model location as follows:
 ```bash
-python play.py --episodes 20 --model v2_model.pt
+python play.py --episodes 20 save-model_dir=./new_reacher
 ```
 
 ## Implementation and results
