@@ -1,7 +1,7 @@
 # Reacher Unity environment solution Report
 # Udacity Reinforcement Learning Nanodegree Project 2: Continuous Control
 
-This project implements a DDPG agent to learn two agents how to collaborate and play Tennis.
+This project implements a DDPG agent to how to control a double jointed arm to stay within a moving sphere.
 
 ## Environment particularities
 <p align="center">
@@ -92,10 +92,11 @@ Using a experience replay buffer and having two separate actor-critic networks (
 
 ### Implementation details
 In this project, we made the following modifications to the above algorithm:
-1. **Noise Process**: each agent has it's own Ornstein-Uhlenbeck noise generator, which is used for action exploration. The noise contribution to an action is calculated as follows (with the `eps` factor decaying during training):
+1. **Noise Process**: Noise is added for each agents' action through a standard Normal distribution sampling. The noise contribution to an action is calculated as follows (with the `eps` factor decaying during training):
    ```python
    if add_noise:
-        action = (1-self.eps)*action + self.eps*self.noise.noise()
+        action = (1-self.eps)*action \
+                    + self.eps*np.random.default_rng().standard_normal(size=(self.num_agents, self.action_size))
    ```
 2. **Replay buffer**: Instead of sampling stochastically from a replay buffer, we implemented a [Prioritized Experience Replay](https://arxiv.org/pdf/1511.05952.pdf) solution.
 3. **n step returns**: As the rewards to an agent are not immediate, to speed up training, an n-step return calculation was implemented.
@@ -120,63 +121,55 @@ layer_3 | Fully Connected | 128 | 4 | `tanh` | 516 (128x4 + 4 bias)
 
 #### Critic network
 The actor is a function approximator from the current state of the game and agent actions to a state action value (1 floating point value).
-We use a deep neural net to approximate this, with the following characteristics:
 
-Since the observation size is 24 floating point values, the **state**=(obs size) * num_agents = 24*2 = **48**
-After running the **state** through a first layer of abstraction (`state_input_layer`), we concatenate all the agent **actions** to produce the input to our `input_layer`
+After running the **state** through a first layer of abstraction (`state_fc`) and normalizing, we concatenate the agent **actions** to produce the input to our `value_fc1` layer
 
 Below is the summary for the critic network. On the hidden layers we use the `leaky_relu` activation function. At the output layer we have no activation funtion.
 
 | Layer | Type | Input | Output | Activation Fn | Parameters
 ------------ | ------------- | ------------- | ------------- | ------------- | -------------
-state_input_layer | Fully Connected | state (48) | 128 | `leaky_relu` | 6272 (48x128 + 128 bias)
-input_layer | Fully Connected | 128 + actions (4) | 128 | `leaky_relu` | 17024 (132x128 + 128 bias)
-hidden_layer[0] | Fully Connected | 128 | 64 | `leaky_relu` | 8256 (128x64 + 64 bias)
-hidden_layer[1] | Fully Connected | 64 | 64 | `leaky_relu` | 4160 (64x64 + 64 bias)
-output_layer | Fully Connected | 64 | 1 | **none** | 65 (64x1 + 1 bias)
-|||||| **29505 total**
+state_fc | Fully Connected | state (33) | 128 | None | 4352 (33x128 + 128 bias)
+bn1 | BatchNorm | 128 | 128 | `leaky_relu` | 512
+value_fc1 | Fully Connected | 128 + action(4) | 128 |`leaky_relu` | 17024 (132x128 + 128 bias)
+output_fc | Fully Connected | 128 | 1 | None | 129 (128x1 + 1 bias)
+
+|||||| **22017 total**
 
 ## Training parameters
 The following parameters were used for training:
 |Parameter | command line flag | Value
 |---------- | ----------------- | -----
 |**Training**
-|iterations |`--training_iterations`|8000
-|batch size | `--memory_batch_size`|512
-|Network update rate |`--tau`|0.05
+|episodes |`--episodes`|200
+|batch size | `--batch-size`|128
+|Network update rate |`--tau`|0.001
 |**Noise**
-|Starting Noise factor | `--eps_start` |1.0
-|Minimum Noise factor | `--eps_minimum` |0.1
-|Noise factor decay rate |`--eps_decay` |0.999
+|Starting Noise factor | `--eps_start` |0.99
+|Minimum Noise factor |  |0.001
+|Noise factor decay rate |`--eps_decay` |0.99
 |**Prioritized Experience Replay**
 |buffer size ||1'000'000
-|n steps |`--n_steps`|15
-|reward discount rate |`--gamma`|0.995
-|α factor (prioritization) for Prioritized Replay Buffer|`--PER_alpha`|0.5
-|starting β factor (randomness) for Prioritized Replay Buffer|`--PER_beta_min`|0.5
+|n steps |`--n_steps`|7
+|reward discount rate |`--gamma`|0.99
+|α factor (prioritization) for Prioritized Replay Buffer|`--PER_alpha`|0.6
+|starting β factor (randomness) for Prioritized Replay Buffer|`--PER_beta_min`|0.4
 |ending β factor (randomness) for Prioritized Replay Buffer|`--PER_beta_max`|1.0
 |minimum priority to set when updating priorities|`--PER_minimum_priority`|1e-5
 |**Actor**
-|dimension of layers |`--actor_dnn_dims`|[128,64,64]
 |activation fn||`leaky_relu`
 |output activation fn||`tanh`
 |Optimizer||`Adam`
-|Learning rate|`--actor_lr`|0.0001
+|Learning rate||0.0001
 |**Critic**
-|dimension of layers |`--actor_dnn_dims`|[128,64,64]
 |activation fn||`leaky_relu`
 |output activation fn||None
 |Optimizer||`Adam`
-|Learning rate|`--critic_lr`|0.0001
+|Learning rate||0.0001
 
-## Results - Plot of scores
-With the above parameters, the agents were able to solve solve the game (average max score over 100 episodes > 0.5) in 2294 episodes (7781 iterations).
+## Results - Plot of Rewards
+With the above parameters, the agent was able to solve the game (average reward over 100 episodes >30) in 30 episodes.
 
-
-## Plot of Rewards
-With the above parameters, the agent was able to solve the game (average reward over 100 episodes >30) in 53 episodes.
-
-Environment solved in 53 episodes!      Average Score: 30.13
+Environment solved in 30 episodes!      Average Score: 30.06
 
 Below is the reward per episode (mean reward across 20 agents).
 
