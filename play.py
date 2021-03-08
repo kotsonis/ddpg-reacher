@@ -40,7 +40,7 @@ def main():
         agent_scores = np.zeros(num_agents)
         frames = 0
         while True:
-            actions = agent.act(states)
+            actions = agent.act(states,add_noise=False)
             env_info = env.step(actions)[brain_name]          # send all actions to tne environment
             next_states = env_info.vector_observations        # get next state (for each agent)
             rewards = env_info.rewards                        # get reward (for each agent)
