@@ -63,6 +63,7 @@ class Configuration():
                                        "beta-decay=",
                                        "alpha=",
                                        "reacher_location=",
+                                       "n_step=",
                                        "help"
                                     ])
         except getopt.GetoptError as err:
@@ -99,6 +100,8 @@ class Configuration():
                 self.PER_alpha = float(a)
             elif o in ("--reacher_location"):
                 self.reacher_location =a
+            elif o in ("--n_step"):
+                self.n_step = int(a)
             elif o == "--help":
                 usage()
                 sys.exit(2)

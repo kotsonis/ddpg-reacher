@@ -10,12 +10,10 @@ from agent import DPG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 hyper_params = config.Configuration()
 hyper_params.process_CLI(sys.argv[1:])
-env = UnityEnvironment(file_name=hyper_params.reacher_location)
+env = UnityEnvironment(file_name=hyper_params.reacher_location, worker_id=2)
 
 
 hyper_params.process_env(env)
-hyper_params.n_step = 5 
-hyper_params.PER_batch_size = 128
 num_agents = hyper_params.num_agents
 action_size = hyper_params.action_size
 brain_name = hyper_params.brain_name
