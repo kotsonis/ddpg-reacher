@@ -4,21 +4,22 @@ import torch
 from collections import deque
 import matplotlib.pyplot as plt
 import os as os
-
+import sys
 import config as config
 from agent import DPG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-env = UnityEnvironment(file_name='./Reacher_Windows_x86_64/Reacher.exe')
-
 hyper_params = config.Configuration()
+hyper_params.process_CLI(sys.argv[1:])
+env = UnityEnvironment(file_name=hyper_params.reacher_location)
+
+
 hyper_params.process_env(env)
 hyper_params.n_step = 5 
 hyper_params.PER_batch_size = 128
 num_agents = hyper_params.num_agents
 action_size = hyper_params.action_size
 brain_name = hyper_params.brain_name
-n_episodes = 500
+n_episodes = hyper_params.n_episodes
 hyper_params.update_every = 3
 solution = 30
 
@@ -30,6 +31,21 @@ scores_window = deque(maxlen=100)           # last 100 scores
 
 agent_scores = np.zeros(num_agents)                          # initialize the score (for each agent)
 frames = 0
+
+# initialize the buffer with random actions to speed up training later
+env_info = env.reset(train_mode=True)[brain_name] # reset the environment
+states = env_info.vector_observations             # get the current state of each agent
+for warm_up_it in range(0, 3000):
+    actions = np.random.randn(num_agents,action_size).clip(-1,1)
+    env_info = env.step(actions)[brain_name]          # send all actions to tne environment
+    next_states = env_info.vector_observations        # get next state (for each agent)
+    rewards = env_info.rewards                        # get reward (for each agent)
+    dones = env_info.local_done                       # see if episode finished
+    agent.memory.add(states, actions, rewards, next_states, dones)
+    states = next_states                              # roll over states to next time step
+    if np.any(dones):                                 # exit loop if episode finished
+        env_info = env.reset(train_mode=True)[brain_name] # reset the environment
+        states = env_info.vector_observations             # get the current state of each agent
 
 for i_episode in range(1, n_episodes+1):
     env_info = env.reset(train_mode=True)[brain_name] # reset the environment
