@@ -20,11 +20,12 @@
             "program": "train.py",
             "console": "integratedTerminal",
             "args": [
-                "--save-model_dir=reacher_v2",
-                "--output-image=reacher_v2.png",
+                "--save-model_dir=reacher_v3",
+                "--output-image=reacher_v3.png",
                 "--episodes=200",
-                "--batch-size=128",
-                "--eps-decay=0.99"
+                "--batch-size=256",
+                "--eps-decay=0.99",
+                "--n_step=7"
             ]
         }
     ]
