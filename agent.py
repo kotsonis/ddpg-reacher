@@ -27,7 +27,7 @@ class DPG():
         # Environment
         self.state_size = config.state_size
         self.action_size = config.action_size
-        
+        self.num_agents = config.num_agents
         # discounting and discounting steps
         self.discount = config.gamma
         self.n_step = config.n_step
@@ -51,7 +51,7 @@ class DPG():
         self.train_step = 0
         
         # Noise process
-        self.noise = OUNoise(self.action_size)
+        self.noise = OUNoise(self.num_agents, self.action_size)
 
         # initialize the replay buffer
         self.memory = nStepPER(size=self.PER_buffer,batch_size=self.batch_size,alpha=self.PER_alpha,n_step=self.n_step,gamma=self.discount)
@@ -110,7 +110,8 @@ class DPG():
             action = self.actor_target(state).cpu().data.numpy()
             # if we are being stochastic, add noise weighted by exploration
             if add_noise:
-                action = (1-self.eps)*action + self.eps*self.noise.noise()
+                action = (1-self.eps)*action \
+                    + self.eps*np.random.default_rng().standard_normal(size=(self.num_agents, self.action_size))
         self.actor_target.train()
 
         return np.clip(action, -1, 1)
