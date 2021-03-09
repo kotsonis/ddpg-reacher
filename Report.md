@@ -167,7 +167,7 @@ The following parameters were used for training:
 |Learning rate||0.0001
 
 ## Results - Plot of Rewards
-With the above parameters, the agent was able to solve the game (average reward over 100 episodes >30) in 30 episodes.
+With the above parameters, the agent was able to solve the game (average reward over 100 episodes >30) in 24 (or 124) episodes.
 
 
 Below is the reward per episode (mean reward across 20 agents).
