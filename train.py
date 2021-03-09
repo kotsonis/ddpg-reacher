@@ -10,7 +10,7 @@ from agent import DPG
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 hyper_params = config.Configuration()
 hyper_params.process_CLI(sys.argv[1:])
-env = UnityEnvironment(file_name=hyper_params.reacher_location, worker_id=2)
+env = UnityEnvironment(file_name=hyper_params.reacher_location, worker_id=1)
 
 
 hyper_params.process_env(env)
@@ -20,7 +20,7 @@ brain_name = hyper_params.brain_name
 n_episodes = hyper_params.n_episodes
 hyper_params.update_every = 3
 solution = 30
-
+solution_found = False
 # create DPG Actor/Critic Agent
 agent = DPG(hyper_params)
 
@@ -29,6 +29,7 @@ scores_window = deque(maxlen=100)           # last 100 scores
 
 agent_scores = np.zeros(num_agents)                          # initialize the score (for each agent)
 frames = 0
+log_file = open('train.log','w')
 
 # initialize the buffer with random actions to speed up training later
 env_info = env.reset(train_mode=True)[brain_name] # reset the environment
@@ -68,11 +69,21 @@ for i_episode in range(1, n_episodes+1):
     scores_window.append(np.mean(agent_scores))       # save most recent score
     
     if i_episode % 10 == 0:
-        print('\rEpisodes: {}\tAverage Score: {:.2f}\t\t'.format(i_episode, np.mean(scores_window)))
-    if np.mean(scores_window)>=solution:
-        print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode-100, np.mean(scores_window)))
+        msg = str('\rEpisodes: {}\tAverage Score: {:.2f}\t\t Score: {:.2f}\t'.format(i_episode, np.mean(scores_window),np.mean(agent_scores)))
+        print(msg)
+        print(msg,file=log_file)
+        log_file.flush()
+    if np.mean(scores_window)>=solution and solution_found == False:
+        msg = str('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode-100, np.mean(scores_window)))
+        print(msg)
+        print(msg,file=log_file)
+        log_file.flush()
+        solution_found = True
         solution_num_episodes = i_episode-100
 
+log_file.close()
+
+print('\nEnvironment solved in {:d} episodes!'.format(solution_num_episodes))
 # save model if requested
 if (hyper_params.model_dir) :
     if not os.path.exists(hyper_params.model_dir):
