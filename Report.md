@@ -146,10 +146,10 @@ The following parameters were used for training:
 |**Noise**
 |Starting Noise factor | `--eps_start` |0.99
 |Minimum Noise factor |  |0.001
-|Noise factor decay rate |`--eps_decay` |0.99
+|Noise factor decay rate |`--eps_decay` |0.9995
 |**Prioritized Experience Replay**
 |buffer size ||1'000'000
-|n steps |`--n_steps`|7
+|n steps |`--n_steps`|5
 |reward discount rate |`--gamma`|0.99
 |α factor (prioritization) for Prioritized Replay Buffer|`--PER_alpha`|0.6
 |starting β factor (randomness) for Prioritized Replay Buffer|`--PER_beta_min`|0.4
@@ -169,12 +169,37 @@ The following parameters were used for training:
 ## Results - Plot of Rewards
 With the above parameters, the agent was able to solve the game (average reward over 100 episodes >30) in 30 episodes.
 
-Environment solved in 30 episodes!      Average Score: 30.06
 
 Below is the reward per episode (mean reward across 20 agents).
 
 ![training_log](./images/Reacher_training_plot.png)
 
+The environment was solved in 24 episodes (ie from episode 24 onwards, the average score over 100 episodes was 30.12), or **alternatively** it was solved in 124 episodes (by episode 124 the average over the previous 100 episodes was 30.12).
+Below the training log:
+```text
+Episodes: 10    Average Score: 0.90              Score: 1.41
+Episodes: 20    Average Score: 2.91              Score: 7.15
+Episodes: 30    Average Score: 5.06              Score: 10.64
+Episodes: 40    Average Score: 7.84              Score: 23.36
+Episodes: 50    Average Score: 11.52             Score: 29.08
+Episodes: 60    Average Score: 14.55             Score: 30.32   
+Episodes: 70    Average Score: 17.31             Score: 36.05   
+Episodes: 80    Average Score: 19.48             Score: 34.23   
+Episodes: 90    Average Score: 21.21             Score: 34.71   
+Episodes: 100   Average Score: 22.53             Score: 36.58   
+Episodes: 110   Average Score: 26.03             Score: 34.86   
+Episodes: 120   Average Score: 29.07             Score: 35.64   
+Episode 124      Frame: 1000/1000        Score: 34.94
+Environment solved in 24 episodes!      Average Score: 30.12
+Episodes: 130   Average Score: 31.67             Score: 35.27 
+Episodes: 140   Average Score: 33.55             Score: 34.81   
+Episodes: 150   Average Score: 34.46             Score: 35.16   
+Episodes: 160   Average Score: 35.02             Score: 35.42   
+Episodes: 170   Average Score: 35.22             Score: 36.22   
+Episodes: 180   Average Score: 35.29             Score: 35.52   
+Episodes: 190   Average Score: 35.35             Score: 34.84   
+Episodes: 200   Average Score: 35.44             Score: 35.13  
+```
 ## Future Work
 This agent was trained by trying to correctly forecast the future mean reward given a state and action. A very interesting development in reinforcement learning is the modification to distributional reinforcement learning, in which we learn the rewards distribution and not just the mean, allowing to capture more nuances of the system. 
 An improvement to be done is to implement a Sample-Based Distributional Policy Gradient [SDPG](https://arxiv.org/abs/2001.02652) (Sing et al, 2020) 

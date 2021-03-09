@@ -12,7 +12,7 @@ class Configuration():
         self.soft_update_tau = 1e-3
         self.eps_start = 0.99
         self.eps_decay_rate = 0.999
-        self.epsilon_min = 1e-3
+        self.epsilon_min = 1e-4
         self.PER_batch_size = 64
         self.PER_alpha = 0.6
         self.n_step = 3
